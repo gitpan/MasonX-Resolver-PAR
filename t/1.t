@@ -5,11 +5,14 @@
 
 # change 'tests => 1' to 'tests => last_test_to_print';
 
-use Test::Simple tests => 1;
+use Test::Simple tests => 2;
 
 use MasonX::Resolver::PAR;
 
 #########################
-
+my $res=MasonX::Resolver::PAR->new(
+    par_file=>"sample.par"
+);
 # Tests
-ok(1, "No tests implemented"); 
+ok($res and (ref $res eq "MasonX::Resolver::PAR"),"new() works");
+ok(ref $res->get_info("/")  eq "HTML::Mason::ComponentSource","get_info() works");

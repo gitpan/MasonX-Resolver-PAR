@@ -1,6 +1,6 @@
 package MasonX::Resolver::PAR;
 
-$VERSION = '0.1';
+$VERSION = '0.2';
 
 use strict;
 
@@ -10,6 +10,7 @@ use Archive::Zip qw(:ERROR_CODES :CONSTANTS);
 use Params::Validate qw(:all);
 
 use HTML::Mason::ComponentSource;
+use MasonX::Component::ParBased;
 use HTML::Mason::Resolver;
 use base qw(HTML::Mason::Resolver);
 
@@ -19,6 +20,8 @@ __PACKAGE__->valid_params
     (
      par_file => { parse => 'string', type => SCALAR },
      par_files_path => { parse => 'string', type => SCALAR, default=>'htdocs/' },
+      par_static_directory_index => { type => ARRAYREF, default => [ qw( index.htm index.html ) ] },
+
     );
 
 sub new {
@@ -84,9 +87,9 @@ sub get_info {
               comp_id => "$base$path",
               last_modified => $last_mod,
 	      comp_path => $path,
-              comp_class => "HTML::Mason::Component::FileBased",
+              comp_class => "MasonX::Component::ParBased",
               source_callback => sub { $self->_get_source($path) },
-	      extra => { comp_root => 'par' },
+#	      extra => { comp_root => 'par' },
             );
 }
 
@@ -113,8 +116,7 @@ sub apache_request_to_comp_path {
     my $self = shift;
     my $r = shift;
 #FIXME: These should be imported from Apache's settings
-    my @indices=$r->dir_config->get('PARStaticDirectoryIndex') || 
-       qw(index.htm index.html);
+    my @indices=@{$self->{par_static_directory_index}};
     #we base this on path_info
     my $path = ( $r->path_info ? $r->path_info : "/" );
     my $file=$self->_get_file($path);
@@ -146,8 +148,8 @@ MasonX::Resolver::PAR - Get mason components from a PAR file
 	PerlModule MasonX::Resolver::PAR
         <Location /myapp>
 	  SetHandler perl-script
-          PerlSetVar PARMasonDirectoryIndex index.htm
-	  PerlAddVar PARMasonDirectoryIndex index.html
+          PerlSetVar MasonParStaticDirectoryIndex index.htm
+	  PerlAddVar MasonParStaticnDirectoryIndex index.html
           PerlSetVar MasonParFile ##PARFILE##
           PerlSetVar MasonResolverClass MasonX::Resolver::PAR
 	  PerlHandler HTML::Mason::ApacheHandler
@@ -156,8 +158,29 @@ MasonX::Resolver::PAR - Get mason components from a PAR file
 =head1 DESCRIPTION
 
 This is a custom Mason Resolver which loads it's content from a PAR
-archive. 
+archive. This is meant to be used in conjunction with Apache::PAR. Read
+the description for this module first. The web.conf above should be inside
+the par archive as specified by Apache::PAR. It will be appended to your apache conf.
+
+=head1 Parameters
+
+=over 4
+
+=item MasonParStaticDirectoryIndex 
+
+allows us to emulate mod_dir. It defaults to qw(index.html index.htm).
+
+=item MasonParFile *required*
+
+should point to the par file we are reading from. Apache::PAR provides the 
+##PARFILE## functionality. note that this can also be passed to the 
+ApacheHandler constructor as par_file.
+
+=item MasonParFilesPath
+
+Where in the par archive to read mason components from. Defaults to 'htdocs/',
+ApacheHandler constructor parameter is par_files_path.
 
 =head1 SEE ALSO
 
-PAR, Apache::PAR
+PAR, Apache::PAR, HTML::Mason::Resolver
